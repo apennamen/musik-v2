@@ -2369,7 +2369,7 @@
     });
     keys.addEventListener('mouseover', (e) => {
 		previousStyle = e.path[0].getAttribute('fill');
-		e.path[0].setAttribute('fill', 'pink');
+		e.path[0].setAttribute('fill', '#8BC34A');
 		document.getElementById('keyboard').dispatchEvent(new CustomEvent('key_over', { 
 		  detail: e.path[1].id,
 		  bubbles: true,

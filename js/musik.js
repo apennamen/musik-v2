@@ -21,17 +21,24 @@ const noteKeys = {
     'KeyC': { note: 'D' },
     'KeyR': { note: 'D#' },
     'KeyF': { note: 'E' },
-    'KeyV': { note: 'F' },
-    'KeyT': { note: 'F#' },
-    'KeyG': { note: 'G' },
-    'KeyB': { note: 'G#' },
-    'KeyY': { note: 'A' },
-    'KeyH': { note: 'A#' },
-    'KeyN': { note: 'B' },
-    'KeyU': { note: 'C', octaveDelta: 1 },
-    'KeyJ': { note: 'C#', octaveDelta: 1 },
-    'KeyM': { note: 'D', octaveDelta: 1 },
+    'KeyV': { note: 'E' },
+    'KeyT': { note: 'F' },
+    'KeyG': { note: 'F#' },
+    'KeyB': { note: 'G' },
+    'KeyY': { note: 'G#' },
+    'KeyH': { note: 'A' },
+    'KeyN': { note: 'A#' },
+    'KeyU': { note: 'B' },
+    'KeyJ': { note: 'C', octaveDelta: 1 },
+    'KeyM': { note: 'C', octaveDelta: 1 },
+    'KeyI': { note: 'C#', octaveDelta: 1 },
+    'KeyK': { note: 'D', octaveDelta: 1 },
 };
+
+const notes = [
+    'C', 'C#', 'D', 'D#', 'E', 'F',
+    'F#', 'G', 'G#', 'A', 'A#', 'B', 
+];
 
 const octaveKeys = {
     'ArrowRight': OCTAVE_INCREMENT,
@@ -51,7 +58,7 @@ $(document).ready(function () {
     // https://developers.google.com/web/updates/2017/09/autoplay-policy-changes#webaudio
     Musik.ac = new AudioContext();
 
-    Musik.octave = DEFAULT_OCTAVE;
+    setCurrentOctave(DEFAULT_OCTAVE);
 
     Musik.instrument = {};
 
@@ -61,13 +68,37 @@ $(document).ready(function () {
      * Creates and registers instrument in namespace
      * @param {string} name Instrument name as defined in 
      * https://raw.githubusercontent.com/danigb/soundfont-player/master/names/fluidR3.json
-     * @param {boolean} isSingleNote true if playing new note should stop previous one 
+     * @param {boolean} singleNote true if playing new note should stop previous one 
      */
     function registerInstrument({ name, singleNote }) {
-        Soundfont.instrument(Musik.ac, name).then(instrument => {
+        Soundfont.instrument(Musik.ac, name, { attack: 0 }).then(instrument => {
             instrument.singleNote = !!singleNote;
             Musik.instrument = instrument;
         })
+    }
+
+    function setCurrentOctave(oct) {
+        Musik.octave = oct;
+        $('#current-octave')[0].innerHTML = oct;
+    }
+
+    /**
+     * Returns the note augmented of a number of half tones
+     * @param {string} note 
+     * @param {number} halfTonesNumber default = 1
+     * @returns 
+     */
+    function interval(note, halfTonesNumber) {
+        if (halfTonesNumber === undefined) halfTonesNumber = 1;
+        let octave = note.slice(-1);
+        const letter = note.slice(0, -1);
+        let index = (notes.indexOf(letter)+halfTonesNumber);
+        if (index === notes.length) {
+            index = 0;
+            octave++;
+        }
+        const result =  notes[index] + octave;
+        return result;
     }
 
     function noteLookup(code) {
@@ -89,11 +120,13 @@ $(document).ready(function () {
     }
 
     // Player Handler
-    $(document).keydown(function ({ code }) {
-        const note = noteLookup(code);
+    $(document).keydown(function (e) {
+        const { code, shiftKey } = e;
+        let note = noteLookup(code);
 
         if (!!note) {
             const instrument = Musik.instrument;
+            if (shiftKey) note = interval(note);
 
             if (instrument.singleNote) instrument.stop();
             instrument.play(note);
@@ -105,11 +138,11 @@ $(document).ready(function () {
 
         if (!!match) {
             if (match === OCTAVE_INCREMENT) {
-                Musik.octave = Math.min(Musik.octave + 1, MAX_OCTAVE);
+                setCurrentOctave(Math.min(Musik.octave + 1, MAX_OCTAVE));
             } else if (match === OCTAVE_DECREMENT) {
-                Musik.octave = Math.max(Musik.octave - 1, MIN_OCTAVE);
+                setCurrentOctave(Math.max(Musik.octave - 1, MIN_OCTAVE));
             } else {
-                Musik.octave = match;
+                setCurrentOctave(match);
             }
         }
     })
@@ -136,9 +169,9 @@ $(document).ready(function () {
     });
 
     // SVG click handler
-    document.getElementsByTagName('object')[0]
+    /*document.getElementsByTagName('object')[0]
         .getSVGDocument()
-        .addEventListener('key_select', function (e) { console.log(e.detail) });
+        .addEventListener('key_select', function (e) { console.log(e.detail) });*/
     // SVG on mouse over
     document.getElementsByTagName('object')[0]
         .getSVGDocument()
