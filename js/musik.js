@@ -66,8 +66,9 @@ $(document).ready(function () {
     registerInstrument(DEFAULT_INSTRUMENT);
 
     // enable recording
-    Musik.record = { 
+    Musik.record = {
         isRecording: false,
+        instrumentName: DEFAULT_INSTRUMENT,
         startTime: 0,
         buffer: [],
     };
@@ -187,8 +188,12 @@ $(document).ready(function () {
                 Musik.instrument.stop();
                 break;
             case "Digit0":
-                Musik.instrument.schedule(Musik.ac.currentTime,
-                    Musik.record.buffer);
+                const ac = new AudioContext();
+                Soundfont.instrument(ac, Musik.record.instrumentName, { attack: 0 })
+                    .then(instrument => {
+                        instrument.schedule(ac.currentTime,
+                            Musik.record.buffer);
+                });
                 break;
             default:
                 break;
@@ -211,6 +216,7 @@ $(document).ready(function () {
                 console.log("**** Recording started ****");
                 Musik.record.startTime = Date.now();
                 Musik.record.buffer = [];
+                Musik.record.instrumentName = Musik.instrument.name;
             } else {
                 console.log("**** Recording end ****");
                 console.log(Musik.record.buffer);
