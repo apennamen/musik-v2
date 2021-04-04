@@ -150,11 +150,13 @@ $(document).ready(function () {
     }
 
     // Player Handler
+    const isDown = {}; // to handle repeated key
     $(document).keydown(function (e) {
         const { code, shiftKey } = e;
         let note = noteLookup(code);
 
-        if (!!note) {
+        if (!!note && !isDown[code]) {
+            isDown[code] = true;
             const instrument = Musik.instrument;
             if (shiftKey) note = interval(note);
 
@@ -163,6 +165,9 @@ $(document).ready(function () {
 
             if (Musik.record.isRecording) record(note);
         }
+    })
+    $(document).keyup(function (e) {
+        isDown[e.code] = false;
     })
     // Octave Handler
     $(document).keydown(function ({ code }) {
