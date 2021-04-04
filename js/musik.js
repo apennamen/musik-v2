@@ -5,14 +5,15 @@ const OCTAVE_INCREMENT = 100;
 const OCTAVE_DECREMENT = -100;
 const DEFAULT_INSTRUMENT = { name: 'acoustic_grand_piano' };
 
-const instrumentKeys = {
+const INSTRUMENT_KEYS = {
     'Digit1': { name: 'acoustic_grand_piano' },
     'Digit2': { name: 'bassoon', singleNote: true },
     'Digit3': { name: 'glockenspiel' },
     'Digit4': { name: 'ocarina', singleNote: true },
+    'Digit5': { name: 'whistle', singleNote: true },
 };
 
-const noteKeys = {
+const NOTE_KEYS = {
     'KeyW': { note: 'A', octaveDelta: -1 },
     'KeyS': { note: 'A#', octaveDelta: -1 },
     'KeyX': { note: 'B', octaveDelta: -1 },
@@ -35,7 +36,7 @@ const noteKeys = {
     'KeyK': { note: 'D', octaveDelta: 1 },
 };
 
-const notes = [
+const NOTES = [
     'C', 'C#', 'D', 'D#', 'E', 'F',
     'F#', 'G', 'G#', 'A', 'A#', 'B', 
 ];
@@ -62,7 +63,14 @@ $(document).ready(function () {
 
     Musik.instrument = {};
 
-    registerInstrument(DEFAULT_INSTRUMENT)
+    registerInstrument(DEFAULT_INSTRUMENT);
+
+    // enable recording
+    Musik.record = { 
+        isRecording: false,
+        startTime: 0,
+        buffer: [],
+    };
 
     /**
      * Creates and registers instrument in namespace
@@ -83,6 +91,17 @@ $(document).ready(function () {
     }
 
     /**
+     * Adds given note to recorded tape
+     * @param {string} note 
+     */
+    function record(note) {
+        note = noteToMidiNumber(note);
+        const { buffer, startTime } = Musik.record;
+        const time = (Date.now() - startTime)/1000;
+        buffer.push({time, note});
+    }
+
+    /**
      * Returns the note augmented of a number of half tones
      * @param {string} note 
      * @param {number} halfTonesNumber default = 1
@@ -92,17 +111,17 @@ $(document).ready(function () {
         if (halfTonesNumber === undefined) halfTonesNumber = 1;
         let octave = note.slice(-1);
         const letter = note.slice(0, -1);
-        let index = (notes.indexOf(letter)+halfTonesNumber);
-        if (index === notes.length) {
+        let index = (NOTES.indexOf(letter)+halfTonesNumber);
+        if (index === NOTES.length) {
             index = 0;
             octave++;
         }
-        const result =  notes[index] + octave;
+        const result =  NOTES[index] + octave;
         return result;
     }
 
     function noteLookup(code) {
-        const match = noteKeys[code];
+        const match = NOTE_KEYS[code];
         if (match) {
             let { note, octaveDelta = 0 } = match;
             const octave = Musik.octave + octaveDelta;
@@ -116,7 +135,17 @@ $(document).ready(function () {
     }
 
     function instrumentLookup(code) {
-        return instrumentKeys[code];
+        return INSTRUMENT_KEYS[code];
+    }
+
+    /**
+     * Converts given not to midi number
+     */
+    function noteToMidiNumber(note) {
+        const letter = note.slice(0,-1);
+        const octave = +note.slice(-1);
+
+        return NOTES.indexOf(letter) +12*(octave+1);
     }
 
     // Player Handler
@@ -130,6 +159,8 @@ $(document).ready(function () {
 
             if (instrument.singleNote) instrument.stop();
             instrument.play(note);
+
+            if (Musik.record.isRecording) record(note);
         }
     })
     // Octave Handler
@@ -155,6 +186,10 @@ $(document).ready(function () {
             case "Space":
                 Musik.instrument.stop();
                 break;
+            case "Digit0":
+                Musik.instrument.schedule(Musik.ac.currentTime,
+                    Musik.record.buffer);
+                break;
             default:
                 break;
         }
@@ -165,6 +200,21 @@ $(document).ready(function () {
 
         if (!!instrument) {
             registerInstrument(instrument);
+        }
+    });
+    // Recorder Handler
+    $(document).keydown(function ({ code }) {
+        if (code === "NumpadEnter") {
+            Musik.record.isRecording = !Musik.record.isRecording;
+
+            if (Musik.record.isRecording) {
+                console.log("**** Recording started ****");
+                Musik.record.startTime = Date.now();
+                Musik.record.buffer = [];
+            } else {
+                console.log("**** Recording end ****");
+                console.log(Musik.record.buffer);
+            }
         }
     });
 
